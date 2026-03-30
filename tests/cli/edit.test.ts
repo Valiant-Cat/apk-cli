@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { parseEditRequest } from '../../src/validators/edit-request';
 import { runCli } from '../helpers/run-cli';
 
@@ -18,21 +21,29 @@ describe('edit command', () => {
   });
 
   it('accepts the required edit parameters', async () => {
-    const result = await runCli([
-      'edit',
-      'app.apk',
-      '--keystore',
-      'release.jks',
-      '--store-pass',
-      'store-pass',
-      '--key-alias',
-      'release',
-      '--key-pass',
-      'key-pass'
-    ]);
+    const outputDir = await mkdtemp(join(tmpdir(), 'apk-cli-edit-test-'));
 
-    expect(result.exitCode).toBe(0);
-    expect(result.stderr).toBe('');
-    expect(result.stdout).toBe('');
+    try {
+      const result = await runCli([
+        'edit',
+        'tests/fixtures/minimal-apk/app.apk',
+        '--output',
+        join(outputDir, 'edited.apk'),
+        '--keystore',
+        'tests/fixtures/keystore/debug.jks',
+        '--store-pass',
+        'android',
+        '--key-alias',
+        'debug',
+        '--key-pass',
+        'android'
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stderr).toBe('');
+      expect(result.stdout).toBe('');
+    } finally {
+      await rm(outputDir, { recursive: true, force: true });
+    }
   });
 });

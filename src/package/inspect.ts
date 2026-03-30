@@ -12,7 +12,7 @@ function prefersAabPlaceholder(input: string): boolean {
 async function resolveDecodedDir(input: string): Promise<string> {
   const inputStats = await stat(input);
 
-  if (inputStats.isFile()) {
+  if (inputStats.isFile() && prefersAabPlaceholder(input)) {
     throw new Error('inspect currently only supports decoded directories; real APK/AAB decode is not implemented yet');
   }
 

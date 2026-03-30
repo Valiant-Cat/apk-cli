@@ -20,8 +20,8 @@ export type RequestedMutations = {
 
 export type EditPipelineReport = {
   input: string;
-  status: 'skipped';
-  message: string;
+  status: 'mutated';
+  mutationReport: MutationReport;
 };
 
 export async function applyRequestedMutations(input: RequestedMutations): Promise<MutationReport> {
@@ -83,10 +83,28 @@ export async function applyRequestedMutations(input: RequestedMutations): Promis
   };
 }
 
-export async function runEditPipeline(request: EditRequest): Promise<EditPipelineReport> {
+export async function runEditPipeline(
+  request: EditRequest & {
+    decodedDir: string;
+    appName?: string;
+    iconPath?: string;
+    versionName?: string;
+    versionCode?: string;
+    packageName?: string;
+  }
+): Promise<EditPipelineReport> {
+  const mutationReport = await applyRequestedMutations({
+    decodedDir: request.decodedDir,
+    appName: request.appName,
+    iconPath: request.iconPath,
+    versionName: request.versionName,
+    versionCode: request.versionCode,
+    packageName: request.packageName
+  });
+
   return {
     input: request.input,
-    status: 'skipped',
-    message: 'edit 流程骨架已准备，真实修改流程尚未实现'
+    status: 'mutated',
+    mutationReport
   };
 }

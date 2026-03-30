@@ -76,7 +76,7 @@ describe('inspect command', () => {
     ].join('\n'));
   });
 
-  it('fails clearly for a real apk file input until decode support exists', async () => {
+  it('fails clearly for an invalid apk archive', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'apk-cli-inspect-file-'));
     const apkPath = join(dir, 'app.apk');
     await writeFile(apkPath, 'not-a-real-apk');
@@ -85,9 +85,7 @@ describe('inspect command', () => {
       const result = await runCli(['inspect', apkPath]);
       expect(result.exitCode).toBe(1);
       expect(result.stdout).toBe('');
-      expect(result.stderr).toBe(
-        'inspect currently only supports decoded directories; real APK/AAB decode is not implemented yet\n'
-      );
+      expect(result.stderr).toBe('invalid apk archive\n');
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

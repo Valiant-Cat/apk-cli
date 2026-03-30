@@ -28,6 +28,12 @@ program
   .option('--store-pass <storePass>', 'keystore password')
   .option('--key-alias <keyAlias>', 'key alias')
   .option('--key-pass <keyPass>', 'key password')
+  .option('--output <output>', 'output file')
+  .option('--app-name <appName>', 'application name')
+  .option('--icon <icon>', 'icon file')
+  .option('--version-name <versionName>', 'version name')
+  .option('--version-code <versionCode>', 'version code')
+  .option('--package-name <packageName>', 'package name')
   .action(function (input) {
     return runEditCommand(input, this.opts());
   });
