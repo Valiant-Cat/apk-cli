@@ -59,7 +59,7 @@ function toDoctorReport(tools: Awaited<ReturnType<typeof collectDoctorReport>>['
 
 export function createApkCliMcpServer() {
   const server = new McpServer({
-    name: 'apk-cli-mcp',
+    name: 'apk-cli',
     version: '0.1.0'
   });
 

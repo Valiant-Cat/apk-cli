@@ -3,8 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "apk-cli": "dist/cli.js",
-    "apk-cli-mcp": "dist/mcp.js"
+    "apk-cli": "dist/cli.js"
   },
   "files": [
     "dist"
@@ -12,7 +11,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "pretest": "npm run build",
-    "prepack": "npm run build",
+    "prepack": "node -e \"const fs=require('fs'); for (const path of ['dist/mcp.js','dist/src','dist/vitest.config.js']) fs.rmSync(path,{recursive:true,force:true});\" && npm run build",
     "test": "vitest run"
   },
   "dependencies": {

@@ -22,7 +22,7 @@ async function readStateFile(path: string): Promise<McpState> {
 
 describe('mcp management commands', () => {
   it('starts, reports status, serves tools, and stops the managed mcp server', async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), 'apk-cli-mcp-manage-'));
+    const tempDir = await mkdtemp(join(tmpdir(), 'apk-cli-manage-'));
     const stateFile = join(tempDir, 'server.json');
 
     try {
@@ -59,7 +59,7 @@ describe('mcp management commands', () => {
       expect(statusResult.stdout).toContain(`url: ${state.url}`);
 
       const transport = new StreamableHTTPClientTransport(new URL(state.url));
-      const client = new Client({ name: 'apk-cli-http-mcp-test', version: '0.1.0' });
+      const client = new Client({ name: 'apk-cli-http-test', version: '0.1.0' });
       await client.connect(transport);
       try {
         const tools = await client.listTools();
