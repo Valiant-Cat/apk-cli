@@ -1,4 +1,5 @@
 import type { EditRequest } from '../validators/edit-request.js';
+import { applyIconMutation } from './icon.js';
 import { applyNameMutation } from './name.js';
 import { applyVersionMutation } from './version.js';
 
@@ -9,6 +10,7 @@ export type MutationReport = {
 export type RequestedMutations = {
   decodedDir: string;
   appName?: string;
+  iconPath?: string;
   versionName?: string;
   versionCode?: string;
 };
@@ -29,6 +31,17 @@ export async function applyRequestedMutations(input: RequestedMutations): Promis
     });
 
     for (const filePath of nameReport.changedFiles) {
+      changedFiles.add(filePath);
+    }
+  }
+
+  if (input.iconPath !== undefined) {
+    const iconReport = await applyIconMutation({
+      decodedDir: input.decodedDir,
+      iconPath: input.iconPath
+    });
+
+    for (const filePath of iconReport.changedFiles) {
       changedFiles.add(filePath);
     }
   }

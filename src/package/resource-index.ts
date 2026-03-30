@@ -28,10 +28,10 @@ function readManifestAttributes(manifestText: string): ParsedAttributes {
   return parseAttributes(manifestMatch[1]);
 }
 
-function collectResourceRefs(manifestText: string, attributeNames: string[]): string[] {
+export function collectXmlResourceRefs(xmlText: string, attributeNames: string[]): string[] {
   const refs = new Set<string>();
 
-  for (const match of manifestText.matchAll(START_TAG_PATTERN)) {
+  for (const match of xmlText.matchAll(START_TAG_PATTERN)) {
     const attributes = parseAttributes(match[2]);
 
     for (const attributeName of attributeNames) {
@@ -53,7 +53,7 @@ export async function buildResourceIndex(decodedDir: string): Promise<ResourceIn
     packageName: manifestAttributes.package,
     versionName: manifestAttributes['android:versionName'],
     versionCode: manifestAttributes['android:versionCode'],
-    labelRefs: collectResourceRefs(manifestText, ['android:label']),
-    iconRefs: collectResourceRefs(manifestText, ['android:icon', 'android:roundIcon'])
+    labelRefs: collectXmlResourceRefs(manifestText, ['android:label']),
+    iconRefs: collectXmlResourceRefs(manifestText, ['android:icon', 'android:roundIcon'])
   };
 }
