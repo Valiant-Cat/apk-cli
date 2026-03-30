@@ -54,4 +54,15 @@ describe('detectTool', () => {
       await fixture.cleanup();
     }
   });
+
+  it('returns missing when probe fails', async () => {
+    const fixture = await createProbeScript();
+
+    try {
+      const result = await detectTool({ name: 'probe-tool', command: fixture.scriptPath });
+      expect(result).toEqual({ name: 'probe-tool', status: 'missing' });
+    } finally {
+      await fixture.cleanup();
+    }
+  });
 });
