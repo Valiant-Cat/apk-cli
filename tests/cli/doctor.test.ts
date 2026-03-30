@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { join, delimiter } from 'node:path';
 import { tmpdir } from 'node:os';
 import { runCli, runPackagedCli } from '../helpers/run-cli';
@@ -86,8 +86,8 @@ describe('createWorkspace', () => {
   it('creates isolated directories for artifacts and logs', async () => {
     const workspace = await createWorkspace({ baseDir: '.tmp-tests' });
     try {
-      expect(workspace.logsDir).toContain('logs');
-      expect(workspace.artifactsDir).toContain('artifacts');
+      expect((await stat(workspace.logsDir)).isDirectory()).toBe(true);
+      expect((await stat(workspace.artifactsDir)).isDirectory()).toBe(true);
     } finally {
       await rm(workspace.root, { recursive: true, force: true });
     }
