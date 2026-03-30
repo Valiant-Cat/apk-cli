@@ -1,76 +1,59 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { XMLParser } from 'fast-xml-parser';
 import type { ResourceIndex } from './types.js';
 
-type ParsedNode = Record<string, unknown>;
+type ParsedAttributes = Record<string, string>;
 
-type ParsedManifest = {
-  manifest?: ParsedNode;
-};
+const START_TAG_PATTERN = /<([A-Za-z_][\w:.-]*)\b([^<>]*)\/?>/g;
+const ATTRIBUTE_PATTERN = /([A-Za-z_][\w:.-]*)\s*=\s*("([^"]*)"|'([^']*)')/g;
 
-const parser = new XMLParser({
-  ignoreAttributes: false,
-  attributeNamePrefix: '@_'
-});
+function parseAttributes(source: string): ParsedAttributes {
+  const attributes: ParsedAttributes = {};
 
-function isRecord(value: unknown): value is ParsedNode {
-  return typeof value === 'object' && value !== null;
+  for (const match of source.matchAll(ATTRIBUTE_PATTERN)) {
+    const [, name, , doubleQuotedValue, singleQuotedValue] = match;
+    attributes[name] = doubleQuotedValue ?? singleQuotedValue ?? '';
+  }
+
+  return attributes;
 }
 
-function collectResourceRefs(node: unknown, attributeName: string, refs: Set<string>): void {
-  if (!isRecord(node)) {
-    return;
-  }
+function readManifestAttributes(manifestText: string): ParsedAttributes {
+  const manifestMatch = manifestText.match(/<manifest\b([^<>]*)>/);
 
-  const attributeValue = node[`@_${attributeName}`];
-  if (typeof attributeValue === 'string' && attributeValue.startsWith('@')) {
-    refs.add(attributeValue);
-  }
-
-  for (const value of Object.values(node)) {
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        collectResourceRefs(item, attributeName, refs);
-      }
-      continue;
-    }
-
-    if (isRecord(value)) {
-      collectResourceRefs(value, attributeName, refs);
-    }
-  }
-}
-
-function requireManifestDocument(parsed: ParsedManifest): ParsedNode {
-  if (!isRecord(parsed.manifest)) {
+  if (!manifestMatch) {
     throw new Error('decoded directory contains an invalid AndroidManifest.xml');
   }
 
-  return parsed.manifest;
+  return parseAttributes(manifestMatch[1]);
+}
+
+function collectResourceRefs(manifestText: string, attributeNames: string[]): string[] {
+  const refs = new Set<string>();
+
+  for (const match of manifestText.matchAll(START_TAG_PATTERN)) {
+    const attributes = parseAttributes(match[2]);
+
+    for (const attributeName of attributeNames) {
+      const value = attributes[attributeName];
+      if (value?.startsWith('@')) {
+        refs.add(value);
+      }
+    }
+  }
+
+  return [...refs];
 }
 
 export async function buildResourceIndex(decodedDir: string): Promise<ResourceIndex> {
   const manifestText = await readFile(join(decodedDir, 'AndroidManifest.xml'), 'utf8');
-  const manifestDocument = requireManifestDocument(parser.parse(manifestText) as ParsedManifest);
-  const labelRefs = new Set<string>();
-  const iconRefs = new Set<string>();
-
-  collectResourceRefs(manifestDocument, 'android:label', labelRefs);
-  collectResourceRefs(manifestDocument, 'android:icon', iconRefs);
-  collectResourceRefs(manifestDocument, 'android:roundIcon', iconRefs);
+  const manifestAttributes = readManifestAttributes(manifestText);
 
   return {
-    packageName: typeof manifestDocument['@_package'] === 'string' ? manifestDocument['@_package'] : undefined,
-    versionName:
-      typeof manifestDocument['@_android:versionName'] === 'string'
-        ? manifestDocument['@_android:versionName']
-        : undefined,
-    versionCode:
-      typeof manifestDocument['@_android:versionCode'] === 'string'
-        ? manifestDocument['@_android:versionCode']
-        : undefined,
-    labelRefs: [...labelRefs],
-    iconRefs: [...iconRefs]
+    packageName: manifestAttributes.package,
+    versionName: manifestAttributes['android:versionName'],
+    versionCode: manifestAttributes['android:versionCode'],
+    labelRefs: collectResourceRefs(manifestText, ['android:label']),
+    iconRefs: collectResourceRefs(manifestText, ['android:icon', 'android:roundIcon'])
   };
 }
