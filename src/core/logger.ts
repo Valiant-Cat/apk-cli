@@ -17,27 +17,31 @@ export type Logger = {
 
 export function createLogger(options?: {
   format?: 'text' | 'json';
-  write?: (line: string) => void;
+  stdout?: (line: string) => void;
+  stderr?: (line: string) => void;
 }): Logger {
   const format = options?.format ?? 'text';
-  const write = options?.write ?? console.log;
+  const stdout = options?.stdout ?? ((line: string) => process.stdout.write(`${line}\n`));
+  const stderr = options?.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
 
   const emit = (entry: LogEntry) => {
-    if (format === 'json') {
-      write(JSON.stringify(entry));
-      return;
-    }
+    const line =
+      format === 'json'
+        ? JSON.stringify(entry)
+        : `[${entry.level.toUpperCase()}] ${entry.message}${entry.meta ? ` ${JSON.stringify(entry.meta)}` : ''}`;
 
-    const meta = entry.meta ? ` ${JSON.stringify(entry.meta)}` : '';
-    write(`[${entry.level.toUpperCase()}] ${entry.message}${meta}`);
+    const write = entry.level === 'warn' || entry.level === 'error' ? stderr : stdout;
+    write(line);
   };
+
+  const now = () => new Date().toISOString();
 
   return {
     log(level, message, meta) {
       emit({
         level,
         message,
-        timestamp: new Date().toISOString(),
+        timestamp: now(),
         meta
       });
     },
@@ -45,7 +49,7 @@ export function createLogger(options?: {
       emit({
         level: 'debug',
         message,
-        timestamp: new Date().toISOString(),
+        timestamp: now(),
         meta
       });
     },
@@ -53,7 +57,7 @@ export function createLogger(options?: {
       emit({
         level: 'info',
         message,
-        timestamp: new Date().toISOString(),
+        timestamp: now(),
         meta
       });
     },
@@ -61,7 +65,7 @@ export function createLogger(options?: {
       emit({
         level: 'warn',
         message,
-        timestamp: new Date().toISOString(),
+        timestamp: now(),
         meta
       });
     },
@@ -69,7 +73,7 @@ export function createLogger(options?: {
       emit({
         level: 'error',
         message,
-        timestamp: new Date().toISOString(),
+        timestamp: now(),
         meta
       });
     }
