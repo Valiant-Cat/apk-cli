@@ -15,4 +15,13 @@ describe('cli bootstrap', () => {
     expect(result.stdout).toContain('apk-cli');
     expect(result.stdout).toContain('doctor');
   });
+
+  it('prints doctor report as json', async () => {
+    const result = await runCli(['doctor', '--json']);
+    expect(result.exitCode).toBe(0);
+
+    const report = JSON.parse(result.stdout);
+    expect(report.tools).toBeTypeOf('object');
+    expect(Array.isArray(report.tools)).toBe(true);
+  });
 });
