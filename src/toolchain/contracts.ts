@@ -1,6 +1,7 @@
 export type ToolSpec = {
   name: string;
   command: string;
+  probeArgs?: string[];
 };
 
 export type ToolStatus = 'available' | 'missing';

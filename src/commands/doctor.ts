@@ -3,16 +3,25 @@ import { detectTool } from '../toolchain/detect.js';
 
 const DEFAULT_TOOLS: ToolSpec[] = [{ name: 'apktool', command: 'apktool' }];
 
+export async function collectDoctorReport(
+  tools: ToolSpec[] = DEFAULT_TOOLS,
+  detector: typeof detectTool = detectTool
+): Promise<DoctorReport> {
+  return {
+    tools: await Promise.all(tools.map((tool) => detector(tool)))
+  };
+}
+
+export function renderDoctorReport(report: DoctorReport, json = false): string {
+  if (json) {
+    return `${JSON.stringify(report, null, 2)}\n`;
+  }
+
+  return `${report.tools.map((tool) => `${tool.name}: ${tool.status}`).join('\n')}\n`;
+}
+
 export async function runDoctorCommand(options?: { json?: boolean }): Promise<void> {
-  const tools = await Promise.all(DEFAULT_TOOLS.map((tool) => detectTool(tool)));
-  const report: DoctorReport = { tools };
+  const report = await collectDoctorReport();
 
-  if (options?.json) {
-    process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
-    return;
-  }
-
-  for (const tool of report.tools) {
-    process.stdout.write(`${tool.name}: ${tool.status}\n`);
-  }
+  process.stdout.write(renderDoctorReport(report, options?.json === true));
 }

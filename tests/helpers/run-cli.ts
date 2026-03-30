@@ -11,16 +11,22 @@ type CliResult = {
   stderr: string;
 };
 
+type RunCliOptions = {
+  env?: NodeJS.ProcessEnv;
+  cwd?: string;
+};
+
 const execFileAsync = promisify(execFile);
 const rootDir = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const distCliPath = resolve(rootDir, 'dist/cli.js');
 
-function runProcess(command: string, args: string[], cwd: string): Promise<CliResult> {
+function runProcess(command: string, args: string[], cwd: string, env?: NodeJS.ProcessEnv): Promise<CliResult> {
   return new Promise<CliResult>((resolvePromise, reject) => {
     const child = spawn(command, args, {
       cwd,
       env: {
         ...process.env,
+        ...env,
         NODE_NO_WARNINGS: '1'
       },
       stdio: ['ignore', 'pipe', 'pipe']
@@ -48,11 +54,11 @@ function runProcess(command: string, args: string[], cwd: string): Promise<CliRe
   });
 }
 
-export async function runCli(args: string[]): Promise<CliResult> {
-  return await runProcess(process.execPath, [distCliPath, ...args], rootDir);
+export async function runCli(args: string[], options?: RunCliOptions): Promise<CliResult> {
+  return await runProcess(process.execPath, [distCliPath, ...args], options?.cwd ?? rootDir, options?.env);
 }
 
-export async function runPackagedCli(args: string[]): Promise<CliResult> {
+export async function runPackagedCli(args: string[], options?: RunCliOptions): Promise<CliResult> {
   const packResult = await execFileAsync('npm', ['pack', '--quiet'], {
     cwd: rootDir,
     env: process.env,
@@ -77,7 +83,7 @@ export async function runPackagedCli(args: string[]): Promise<CliResult> {
       ? join(installDir, 'node_modules', '.bin', 'apk-cli.cmd')
       : join(installDir, 'node_modules', '.bin', 'apk-cli');
 
-    return await runProcess(binPath, args, installDir);
+    return await runProcess(binPath, args, options?.cwd ?? installDir, options?.env);
   } finally {
     await rm(installDir, { recursive: true, force: true });
     await rm(tarballPath, { force: true });
