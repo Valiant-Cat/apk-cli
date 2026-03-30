@@ -1,8 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join, delimiter } from 'node:path';
 import { tmpdir } from 'node:os';
 import { runCli, runPackagedCli } from '../helpers/run-cli';
+import { createWorkspace } from '../../src/core/workspace';
+import { runApktoolDecode } from '../../src/toolchain/android-tools';
+import { runCommand } from '../../src/toolchain/runner';
+
+vi.mock('../../src/toolchain/runner', () => ({
+  runCommand: vi.fn().mockResolvedValue({ stdout: '', stderr: '' })
+}));
 
 async function createFakeApktool() {
   const dir = await mkdtemp(join(tmpdir(), 'apk-cli-doctor-'));
@@ -72,5 +79,31 @@ describe('cli bootstrap', () => {
     } finally {
       await fixture.cleanup();
     }
+  });
+});
+
+describe('createWorkspace', () => {
+  it('creates isolated directories for artifacts and logs', async () => {
+    const workspace = await createWorkspace({ baseDir: '.tmp-tests' });
+    try {
+      expect(workspace.logsDir).toContain('logs');
+      expect(workspace.artifactsDir).toContain('artifacts');
+    } finally {
+      await rm(workspace.root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('runApktoolDecode', () => {
+  it('invokes apktool decode with the expected flags', async () => {
+    await runApktoolDecode('input.apk', 'output');
+
+    expect(vi.mocked(runCommand)).toHaveBeenCalledWith('apktool', [
+      'd',
+      '-f',
+      'input.apk',
+      '-o',
+      'output'
+    ]);
   });
 });
