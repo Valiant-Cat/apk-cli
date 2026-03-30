@@ -46,7 +46,7 @@ export function collectXmlResourceRefs(xmlText: string, attributeNames: string[]
 }
 
 export async function buildResourceIndex(decodedDir: string): Promise<ResourceIndex> {
-  const manifestText = await readFile(join(decodedDir, 'AndroidManifest.xml'), 'utf8');
+  const manifestText = await readDecodedManifest(decodedDir);
   const manifestAttributes = readManifestAttributes(manifestText);
 
   return {
@@ -56,4 +56,8 @@ export async function buildResourceIndex(decodedDir: string): Promise<ResourceIn
     labelRefs: collectXmlResourceRefs(manifestText, ['android:label']),
     iconRefs: collectXmlResourceRefs(manifestText, ['android:icon', 'android:roundIcon'])
   };
+}
+
+export async function readDecodedManifest(decodedDir: string): Promise<string> {
+  return await readFile(join(decodedDir, 'AndroidManifest.xml'), 'utf8');
 }

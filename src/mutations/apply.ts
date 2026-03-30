@@ -1,16 +1,19 @@
 import type { EditRequest } from '../validators/edit-request.js';
 import { applyIconMutation } from './icon.js';
 import { applyNameMutation } from './name.js';
+import { applyPackageNameMutation } from './package-name.js';
 import { applyVersionMutation } from './version.js';
 
 export type MutationReport = {
   changedFiles: string[];
+  risks?: string[];
 };
 
 export type RequestedMutations = {
   decodedDir: string;
   appName?: string;
   iconPath?: string;
+  packageName?: string;
   versionName?: string;
   versionCode?: string;
 };
@@ -23,6 +26,7 @@ export type EditPipelineReport = {
 
 export async function applyRequestedMutations(input: RequestedMutations): Promise<MutationReport> {
   const changedFiles = new Set<string>();
+  const risks = new Set<string>();
 
   if (input.appName !== undefined) {
     const nameReport = await applyNameMutation({
@@ -58,8 +62,24 @@ export async function applyRequestedMutations(input: RequestedMutations): Promis
     }
   }
 
+  if (input.packageName !== undefined) {
+    const packageReport = await applyPackageNameMutation({
+      decodedDir: input.decodedDir,
+      nextPackageName: input.packageName
+    });
+
+    for (const filePath of packageReport.changedFiles) {
+      changedFiles.add(filePath);
+    }
+
+    for (const risk of packageReport.risks) {
+      risks.add(risk);
+    }
+  }
+
   return {
-    changedFiles: [...changedFiles]
+    changedFiles: [...changedFiles],
+    risks: [...risks]
   };
 }
 
