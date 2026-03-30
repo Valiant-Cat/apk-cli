@@ -1,10 +1,11 @@
 import { basename, extname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createWorkspace } from '../core/workspace.js';
-import { inspectPackage } from '../package/inspect.js';
+import { buildAabFromApk } from '../package/bundle.js';
 import { decodeAab } from '../package/decode-aab.js';
 import { decodeApk } from '../package/decode-apk.js';
-import { buildZipArtifact, signApk, verifySignedApk } from '../package/sign.js';
+import { inspectPackage } from '../package/inspect.js';
+import { buildApkArtifact, signAab, signApk, verifySignedAab, verifySignedApk } from '../package/sign.js';
 import { runEditPipeline } from '../mutations/apply.js';
 import { formatJsonReport, type CliReport } from '../reporting/json-report.js';
 import { formatTextReport } from '../reporting/text-report.js';
@@ -58,7 +59,7 @@ export async function runEditCommand(input: string, options?: EditCommandOptions
       baseDir: join(tmpdir(), 'apk-cli-workspaces')
     });
     const decodedDir = prefersAab(request.input)
-      ? await decodeAab(request.input, workspace.root)
+      ? await decodeAab(request.input, workspace.root, request)
       : await decodeApk(request.input, workspace.root);
 
     const pipelineReport = await runEditPipeline({
@@ -78,18 +79,31 @@ export async function runEditCommand(input: string, options?: EditCommandOptions
       packageName?: string;
     });
 
-    const artifactName = prefersAab(request.input) ? 'unsigned.aab' : 'unsigned.apk';
-    const unsignedApk = await buildZipArtifact(decodedDir, join(workspace.artifactsDir, artifactName));
     const outputFile = buildDefaultOutputPath(request.input, request.output);
-    await signApk(unsignedApk, outputFile, request);
-    await verifySignedApk(outputFile, request);
+    const unsignedApk = await buildApkArtifact(decodedDir, join(workspace.artifactsDir, 'unsigned.apk'));
+
+    if (prefersAab(request.input)) {
+      const signedApk = join(workspace.artifactsDir, 'edited.apk');
+      await signApk(unsignedApk, signedApk, request);
+      const outputBundle = await buildAabFromApk(signedApk, outputFile, workspace.root);
+      await signAab(outputBundle, request);
+      await verifySignedAab(outputBundle, request);
+    } else {
+      await signApk(unsignedApk, outputFile, request);
+      await verifySignedApk(outputFile);
+    }
+
     const verify = await inspectPackage(outputFile);
     const report: CliReport = {
       command: 'edit',
       stages: [
         { name: 'decode', status: 'ok' },
         { name: 'mutate', status: 'ok' },
-        { name: 'build', status: 'ok', message: 'zip placeholder pipeline' },
+        {
+          name: 'build',
+          status: 'ok',
+          message: prefersAab(request.input) ? 'bundletool rebuild pipeline' : 'apktool build pipeline'
+        },
         { name: 'sign', status: 'ok' },
         { name: 'verify', status: 'ok' }
       ],

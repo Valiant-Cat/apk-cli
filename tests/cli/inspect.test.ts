@@ -71,7 +71,7 @@ describe('inspect command', () => {
       'version name: 2.0.0',
       'version code: 7',
       'label refs: @string/app_name',
-      'icon refs: @mipmap/ic_launcher',
+      'icon refs: @mipmap/ic_launcher, @mipmap/ic_launcher_round',
       ''
     ].join('\n'));
   });

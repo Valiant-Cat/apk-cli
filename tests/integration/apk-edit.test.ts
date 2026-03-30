@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { runEditScenario } from '../helpers/run-edit-scenario.js';
 
+const EDIT_TIMEOUT_MS = 60000;
+
 describe('apk edit integration', () => {
   it('rebuilds, signs, and verifies an edited apk', async () => {
     const result = await runEditScenario('tests/fixtures/minimal-apk/app.apk', {
@@ -19,5 +21,5 @@ describe('apk edit integration', () => {
     } finally {
       await result.cleanup();
     }
-  });
+  }, EDIT_TIMEOUT_MS);
 });

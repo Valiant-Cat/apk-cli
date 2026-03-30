@@ -5,6 +5,8 @@ import { tmpdir } from 'node:os';
 import { parseEditRequest } from '../../src/validators/edit-request';
 import { runCli } from '../helpers/run-cli';
 
+const EDIT_TIMEOUT_MS = 60000;
+
 describe('parseEditRequest', () => {
   it('requires keystore credentials', () => {
     expect(() => parseEditRequest({ input: 'app.apk' })).toThrow(/keystore/i);
@@ -46,7 +48,7 @@ describe('edit command', () => {
     } finally {
       await rm(outputDir, { recursive: true, force: true });
     }
-  });
+  }, EDIT_TIMEOUT_MS);
 
   it('prints machine-readable json when requested', async () => {
     const outputDir = await mkdtemp(join(tmpdir(), 'apk-cli-edit-json-test-'));
@@ -84,5 +86,5 @@ describe('edit command', () => {
     } finally {
       await rm(outputDir, { recursive: true, force: true });
     }
-  });
+  }, EDIT_TIMEOUT_MS);
 });

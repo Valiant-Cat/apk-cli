@@ -28,6 +28,16 @@ function readManifestAttributes(manifestText: string): ParsedAttributes {
   return parseAttributes(manifestMatch[1]);
 }
 
+function readVersionInfoFromApktoolYaml(apktoolYamlText: string): ParsedAttributes {
+  const versionCodeMatch = apktoolYamlText.match(/^\s+versionCode:\s+("?)(.+?)\1\s*$/m);
+  const versionNameMatch = apktoolYamlText.match(/^\s+versionName:\s+("?)(.+?)\1\s*$/m);
+
+  return {
+    ...(versionCodeMatch ? { 'android:versionCode': versionCodeMatch[2] } : {}),
+    ...(versionNameMatch ? { 'android:versionName': versionNameMatch[2] } : {})
+  };
+}
+
 export function collectXmlResourceRefs(xmlText: string, attributeNames: string[]): string[] {
   const refs = new Set<string>();
 
@@ -48,11 +58,13 @@ export function collectXmlResourceRefs(xmlText: string, attributeNames: string[]
 export async function buildResourceIndex(decodedDir: string): Promise<ResourceIndex> {
   const manifestText = await readDecodedManifest(decodedDir);
   const manifestAttributes = readManifestAttributes(manifestText);
+  const apktoolYamlText = await readDecodedApktoolYaml(decodedDir).catch(() => '');
+  const apktoolVersionInfo = apktoolYamlText.length > 0 ? readVersionInfoFromApktoolYaml(apktoolYamlText) : {};
 
   return {
     packageName: manifestAttributes.package,
-    versionName: manifestAttributes['android:versionName'],
-    versionCode: manifestAttributes['android:versionCode'],
+    versionName: manifestAttributes['android:versionName'] ?? apktoolVersionInfo['android:versionName'],
+    versionCode: manifestAttributes['android:versionCode'] ?? apktoolVersionInfo['android:versionCode'],
     labelRefs: collectXmlResourceRefs(manifestText, ['android:label']),
     iconRefs: collectXmlResourceRefs(manifestText, ['android:icon', 'android:roundIcon'])
   };
@@ -60,4 +72,8 @@ export async function buildResourceIndex(decodedDir: string): Promise<ResourceIn
 
 export async function readDecodedManifest(decodedDir: string): Promise<string> {
   return await readFile(join(decodedDir, 'AndroidManifest.xml'), 'utf8');
+}
+
+async function readDecodedApktoolYaml(decodedDir: string): Promise<string> {
+  return await readFile(join(decodedDir, 'apktool.yml'), 'utf8');
 }

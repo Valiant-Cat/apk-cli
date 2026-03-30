@@ -36,6 +36,9 @@ apk-cli edit app.apk \
 ## 说明
 
 - `edit` 需要提供 keystore 参数才能执行签名
+- 首次运行 `doctor`、`inspect` 或 `edit` 时，工具会把缺失的官方依赖下载到 `~/.apk-cli/tools`
+- `apk` 走 `apktool + zipalign + apksigner` 流水线，`aab` 走 `bundletool + jarsigner` 流水线
+- 当前 `aab` 编辑仅支持单 `base` module 的 bundle，多 module bundle 会直接失败并给出原因
 - `inspect` 和 `doctor` 同时支持文本输出和 `--json`
 - `edit` 成功时会输出稳定文本摘要，或者在 `--json` 下输出可机读结果
 - 测试夹具位于 `tests/fixtures/`

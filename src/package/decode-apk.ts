@@ -2,10 +2,7 @@ import { access, mkdtemp, stat } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-
-const execFileAsync = promisify(execFile);
+import { runApktoolDecode } from '../toolchain/android-tools.js';
 
 export async function decodeApk(input: string, workspaceRoot?: string): Promise<string> {
   const resolvedInput = resolve(input);
@@ -20,7 +17,7 @@ export async function decodeApk(input: string, workspaceRoot?: string): Promise<
   const decodedDir = join(decodeBaseDir, 'decoded');
 
   try {
-    await execFileAsync('unzip', ['-q', resolvedInput, '-d', decodedDir], { encoding: 'utf8' });
+    await runApktoolDecode(resolvedInput, decodedDir);
   } catch {
     throw new Error('invalid apk archive');
   }

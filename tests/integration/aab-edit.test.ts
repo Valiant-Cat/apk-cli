@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { runEditScenario } from '../helpers/run-edit-scenario.js';
 
+const EDIT_TIMEOUT_MS = 60000;
+
 describe('aab edit integration', () => {
   it('edits and rebuilds an aab bundle', async () => {
     const result = await runEditScenario('tests/fixtures/minimal-aab/app.aab', {
@@ -14,5 +16,5 @@ describe('aab edit integration', () => {
     } finally {
       await result.cleanup();
     }
-  });
+  }, EDIT_TIMEOUT_MS);
 });

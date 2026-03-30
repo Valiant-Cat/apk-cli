@@ -1,15 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { chmod, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { join, delimiter, relative } from 'node:path';
 import { tmpdir } from 'node:os';
 import { runCli, runPackagedCli } from '../helpers/run-cli';
 import { createWorkspace } from '../../src/core/workspace';
 import { runApktoolDecode } from '../../src/toolchain/android-tools';
-import { runCommand } from '../../src/toolchain/runner';
-
-vi.mock('../../src/toolchain/runner', () => ({
-  runCommand: vi.fn().mockResolvedValue({ stdout: '', stderr: '' })
-}));
 
 async function createFakeApktool() {
   const dir = await mkdtemp(join(tmpdir(), 'apk-cli-doctor-'));
@@ -62,9 +57,18 @@ describe('cli bootstrap', () => {
     try {
       const result = await runCli(['doctor', '--json'], { env: withPathPrefix(fixture.dir) });
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toBe(
-        `${JSON.stringify({ tools: [{ name: 'apktool', status: 'available' }] }, null, 2)}\n`
-      );
+      expect(JSON.parse(result.stdout)).toEqual({
+        tools: [
+          { name: 'java', status: 'available' },
+          { name: 'jarsigner', status: 'available' },
+          { name: 'apktool', status: 'available' },
+          { name: 'bundletool', status: 'available' },
+          { name: 'aapt2', status: 'available' },
+          { name: 'zipalign', status: 'available' },
+          { name: 'apksigner', status: 'available' },
+          { name: 'android.jar', status: 'available' }
+        ]
+      });
     } finally {
       await fixture.cleanup();
     }
@@ -75,7 +79,9 @@ describe('cli bootstrap', () => {
     try {
       const result = await runCli(['doctor'], { env: withPathPrefix(fixture.dir) });
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toBe('apktool: available\n');
+      expect(result.stdout).toContain('java: available');
+      expect(result.stdout).toContain('apktool: available');
+      expect(result.stdout).toContain('bundletool: available');
     } finally {
       await fixture.cleanup();
     }
@@ -114,15 +120,15 @@ describe('createWorkspace', () => {
 });
 
 describe('runApktoolDecode', () => {
-  it('invokes apktool decode with the expected flags', async () => {
-    await runApktoolDecode('input.apk', 'output');
+  it('decodes a real apk into the requested output directory', async () => {
+    const baseDir = await mkdtemp(join(tmpdir(), 'apk-cli-apktool-decode-'));
+    const outputDir = join(baseDir, 'decoded');
 
-    expect(vi.mocked(runCommand)).toHaveBeenCalledWith('apktool', [
-      'd',
-      '-f',
-      'input.apk',
-      '-o',
-      'output'
-    ]);
+    try {
+      await runApktoolDecode('tests/fixtures/minimal-apk/app.apk', outputDir);
+      expect((await stat(join(outputDir, 'AndroidManifest.xml'))).isFile()).toBe(true);
+    } finally {
+      await rm(baseDir, { recursive: true, force: true });
+    }
   });
 });

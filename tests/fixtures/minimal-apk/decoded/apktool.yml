@@ -1,0 +1,16 @@
+version: 3.0.1
+apkFileName: app.apk
+usesFramework:
+  ids:
+  - 1
+sdkInfo:
+  minSdkVersion: 21
+  targetSdkVersion: 34
+versionInfo:
+  versionCode: 42
+  versionName: 1.2.3
+resourcesInfo:
+  packageId: 127
+doNotCompress:
+- arsc
+- png

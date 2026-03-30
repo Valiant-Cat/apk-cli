@@ -2,12 +2,15 @@ import { access, mkdtemp, stat } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import type { KeystoreCredentials } from '../validators/keystore.js';
+import { buildUniversalApkFromAab } from './bundle.js';
+import { decodeApk } from './decode-apk.js';
 
-const execFileAsync = promisify(execFile);
-
-export async function decodeAab(input: string, workspaceRoot?: string): Promise<string> {
+export async function decodeAab(
+  input: string,
+  workspaceRoot?: string,
+  keystore?: KeystoreCredentials
+): Promise<string> {
   const resolvedInput = resolve(input);
   const inputStats = await stat(resolvedInput);
 
@@ -17,14 +20,6 @@ export async function decodeAab(input: string, workspaceRoot?: string): Promise<
   }
 
   const decodeBaseDir = workspaceRoot ?? await mkdtemp(join(tmpdir(), 'apk-cli-aab-decode-'));
-  const decodedDir = join(decodeBaseDir, 'decoded');
-
-  try {
-    await execFileAsync('unzip', ['-q', resolvedInput, '-d', decodedDir], { encoding: 'utf8' });
-  } catch {
-    throw new Error('invalid aab archive');
-  }
-
-  await access(join(decodedDir, 'AndroidManifest.xml'), constants.R_OK);
-  return decodedDir;
+  const universalApk = await buildUniversalApkFromAab(resolvedInput, decodeBaseDir, keystore);
+  return await decodeApk(universalApk, decodeBaseDir);
 }

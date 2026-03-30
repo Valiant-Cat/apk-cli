@@ -21,7 +21,10 @@ describe('buildResourceIndex', () => {
     const index = await buildResourceIndex('tests/fixtures/minimal-aab/decoded');
 
     expect(index.labelRefs).toEqual(['@string/app_name']);
-    expect(index.iconRefs).toEqual(['@mipmap/ic_launcher']);
+    expect(index.iconRefs).toEqual([
+      '@mipmap/ic_launcher',
+      '@mipmap/ic_launcher_round'
+    ]);
   });
 
   it('handles single quotes and flexible attribute whitespace', async () => {
