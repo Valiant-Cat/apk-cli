@@ -34,6 +34,7 @@ program
   .option('--version-name <versionName>', 'version name')
   .option('--version-code <versionCode>', 'version code')
   .option('--package-name <packageName>', 'package name')
+  .option('--json', 'output json')
   .action(function (input) {
     return runEditCommand(input, this.opts());
   });

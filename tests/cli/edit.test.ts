@@ -41,7 +41,8 @@ describe('edit command', () => {
 
       expect(result.exitCode).toBe(0);
       expect(result.stderr).toBe('');
-      expect(result.stdout).toBe('');
+      expect(result.stdout).toContain('command: edit');
+      expect(result.stdout).toContain('output:');
     } finally {
       await rm(outputDir, { recursive: true, force: true });
     }

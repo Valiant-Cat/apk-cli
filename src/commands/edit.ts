@@ -6,6 +6,8 @@ import { decodeAab } from '../package/decode-aab.js';
 import { decodeApk } from '../package/decode-apk.js';
 import { buildZipArtifact, signApk, verifySignedApk } from '../package/sign.js';
 import { runEditPipeline } from '../mutations/apply.js';
+import { formatJsonReport, type CliReport } from '../reporting/json-report.js';
+import { formatTextReport } from '../reporting/text-report.js';
 import { parseEditRequest } from '../validators/edit-request.js';
 
 export type EditCommandOptions = {
@@ -19,6 +21,7 @@ export type EditCommandOptions = {
   versionName?: string;
   versionCode?: string;
   packageName?: string;
+  json?: boolean;
 };
 
 function buildDefaultOutputPath(input: string, output?: string): string {
@@ -58,7 +61,7 @@ export async function runEditCommand(input: string, options?: EditCommandOptions
       ? await decodeAab(request.input, workspace.root)
       : await decodeApk(request.input, workspace.root);
 
-    await runEditPipeline({
+    const pipelineReport = await runEditPipeline({
       ...request,
       decodedDir,
       appName: request.appName,
@@ -80,7 +83,22 @@ export async function runEditCommand(input: string, options?: EditCommandOptions
     const outputFile = buildDefaultOutputPath(request.input, request.output);
     await signApk(unsignedApk, outputFile, request);
     await verifySignedApk(outputFile, request);
-    await inspectPackage(outputFile);
+    const verify = await inspectPackage(outputFile);
+    const report: CliReport = {
+      command: 'edit',
+      stages: [
+        { name: 'decode', status: 'ok' },
+        { name: 'mutate', status: 'ok' },
+        { name: 'build', status: 'ok', message: 'zip placeholder pipeline' },
+        { name: 'sign', status: 'ok' },
+        { name: 'verify', status: 'ok' }
+      ],
+      mutationReport: pipelineReport.mutationReport,
+      outputFile,
+      verify
+    };
+
+    process.stdout.write(options?.json === true ? formatJsonReport(report) : formatTextReport(report));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`${message}\n`);
