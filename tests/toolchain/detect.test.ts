@@ -3,7 +3,7 @@ import { detectTool } from '../../src/toolchain/detect';
 
 describe('detectTool', () => {
   it('returns missing when command is unavailable', async () => {
-    const result = await detectTool({ name: 'apktool', command: '__definitely_missing_apktool__' });
+    const result = await detectTool({ name: 'apktool', command: 'missing-apktool' });
     expect(result.status).toBe('missing');
   });
 });
