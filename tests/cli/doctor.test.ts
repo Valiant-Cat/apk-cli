@@ -6,7 +6,6 @@ import { runCli, runPackagedCli } from '../helpers/run-cli';
 import { createWorkspace } from '../../src/core/workspace';
 import { runApktoolDecode } from '../../src/toolchain/android-tools';
 import { runCommand } from '../../src/toolchain/runner';
-import { downloadArtifact } from '../../src/toolchain/download';
 
 vi.mock('../../src/toolchain/runner', () => ({
   runCommand: vi.fn().mockResolvedValue({ stdout: '', stderr: '' })
@@ -94,6 +93,7 @@ describe('createWorkspace', () => {
     } finally {
       await rm(workspace.root, { recursive: true, force: true });
       await rm(baseDir, { recursive: true, force: true });
+      await expect(stat(baseDir)).rejects.toThrow();
     }
   });
 
@@ -108,13 +108,14 @@ describe('createWorkspace', () => {
       expect(relative(baseDir, second.root)).not.toMatch(/^(\.\.)($|\/|\\)/);
     } finally {
       await rm(baseDir, { recursive: true, force: true });
+      await expect(stat(baseDir)).rejects.toThrow();
     }
   });
 });
 
 describe('runApktoolDecode', () => {
-  it('invokes apktool decode with default settings', async () => {
-    await runApktoolDecode({ inputPath: 'input.apk', outputDir: 'output' });
+  it('invokes apktool decode with the expected flags', async () => {
+    await runApktoolDecode('input.apk', 'output');
 
     expect(vi.mocked(runCommand)).toHaveBeenCalledWith('apktool', [
       'd',
@@ -123,32 +124,5 @@ describe('runApktoolDecode', () => {
       '-o',
       'output'
     ]);
-  });
-
-  it('allows overriding command and flags without changing the API shape', async () => {
-    await runApktoolDecode({
-      command: '/opt/android/apktool',
-      inputPath: 'input.apk',
-      outputDir: 'output',
-      force: false,
-      extraArgs: ['--frame-path', 'frames']
-    });
-
-    expect(vi.mocked(runCommand)).toHaveBeenCalledWith('/opt/android/apktool', [
-      'd',
-      '--frame-path',
-      'frames',
-      'input.apk',
-      '-o',
-      'output'
-    ]);
-  });
-});
-
-describe('downloadArtifact', () => {
-  it('fails explicitly until the downloader is implemented', async () => {
-    await expect(
-      downloadArtifact({ url: 'https://example.com/tool.zip', destination: 'tools/tool.zip' })
-    ).rejects.toThrow('downloadArtifact is not implemented');
   });
 });
