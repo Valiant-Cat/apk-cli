@@ -2,6 +2,7 @@ import { basename, extname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createWorkspace } from '../core/workspace.js';
 import { inspectPackage } from '../package/inspect.js';
+import { decodeAab } from '../package/decode-aab.js';
 import { decodeApk } from '../package/decode-apk.js';
 import { buildZipArtifact, signApk, verifySignedApk } from '../package/sign.js';
 import { runEditPipeline } from '../mutations/apply.js';
@@ -30,6 +31,10 @@ function buildDefaultOutputPath(input: string, output?: string): string {
   return join(process.cwd(), `${baseName}-edited${extension}`);
 }
 
+function prefersAab(input: string): boolean {
+  return extname(input).toLowerCase() === '.aab';
+}
+
 export async function runEditCommand(input: string, options?: EditCommandOptions): Promise<void> {
   try {
     const request = parseEditRequest({
@@ -49,7 +54,9 @@ export async function runEditCommand(input: string, options?: EditCommandOptions
     const workspace = await createWorkspace({
       baseDir: join(tmpdir(), 'apk-cli-workspaces')
     });
-    const decodedDir = await decodeApk(request.input, workspace.root);
+    const decodedDir = prefersAab(request.input)
+      ? await decodeAab(request.input, workspace.root)
+      : await decodeApk(request.input, workspace.root);
 
     await runEditPipeline({
       ...request,
@@ -68,7 +75,8 @@ export async function runEditCommand(input: string, options?: EditCommandOptions
       packageName?: string;
     });
 
-    const unsignedApk = await buildZipArtifact(decodedDir, join(workspace.artifactsDir, 'unsigned.apk'));
+    const artifactName = prefersAab(request.input) ? 'unsigned.aab' : 'unsigned.apk';
+    const unsignedApk = await buildZipArtifact(decodedDir, join(workspace.artifactsDir, artifactName));
     const outputFile = buildDefaultOutputPath(request.input, request.output);
     await signApk(unsignedApk, outputFile, request);
     await verifySignedApk(outputFile, request);

@@ -1,6 +1,6 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { extname, join } from 'node:path';
 import { inspectPackage } from '../../src/package/inspect.js';
 import { runCli } from './run-cli.js';
 
@@ -14,7 +14,7 @@ export type EditScenarioOptions = {
 
 export async function runEditScenario(input: string, options: EditScenarioOptions) {
   const workDir = await mkdtemp(join(tmpdir(), 'apk-cli-edit-scenario-'));
-  const outputFile = join(workDir, 'edited.apk');
+  const outputFile = join(workDir, `edited${extname(input) || '.apk'}`);
 
   const args = [
     'edit',
