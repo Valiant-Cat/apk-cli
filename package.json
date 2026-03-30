@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "pretest": "npm run build",
     "prepack": "npm run build",
     "test": "vitest run"
   },
