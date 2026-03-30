@@ -1,13 +1,22 @@
-import { extname } from 'node:path';
+import { basename, extname } from 'node:path';
+import { stat } from 'node:fs/promises';
 import { buildResourceIndex } from './resource-index.js';
 import { decodeAab } from './decode-aab.js';
 import { decodeApk } from './decode-apk.js';
 import type { ResourceIndex } from './types.js';
 
-async function resolveDecodedDir(input: string): Promise<string> {
-  const extension = extname(input).toLowerCase();
+function prefersAabPlaceholder(input: string): boolean {
+  return extname(basename(input)).toLowerCase() === '.aab';
+}
 
-  if (extension === '.aab') {
+async function resolveDecodedDir(input: string): Promise<string> {
+  const inputStats = await stat(input);
+
+  if (inputStats.isFile()) {
+    throw new Error('inspect currently only supports decoded directories; real APK/AAB decode is not implemented yet');
+  }
+
+  if (prefersAabPlaceholder(input)) {
     return await decodeAab(input);
   }
 

@@ -5,7 +5,8 @@
     android:versionName="2.0.0">
     <application
         android:label="@string/app_name"
-        android:icon="@mipmap/ic_launcher">
-        <activity android:name=".BundleActivity" />
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher">
+        <activity android:name=".BundleActivity" android:label="Bundle Activity" />
     </application>
 </manifest>
