@@ -1,5 +1,7 @@
 import type { DoctorReport, ToolSpec } from '../toolchain/contracts.js';
 import { detectTool } from '../toolchain/detect.js';
+import { formatJsonReport } from '../reporting/json-report.js';
+import { formatTextReport } from '../reporting/text-report.js';
 
 const DEFAULT_TOOLS: ToolSpec[] = [{ name: 'apktool', command: 'apktool' }];
 
@@ -22,6 +24,9 @@ export function renderDoctorReport(report: DoctorReport, json = false): string {
 
 export async function runDoctorCommand(options?: { json?: boolean }): Promise<void> {
   const report = await collectDoctorReport();
+  const output = options?.json === true
+    ? formatJsonReport({ command: 'doctor', tools: report.tools })
+    : formatTextReport({ command: 'doctor', tools: report.tools });
 
-  process.stdout.write(renderDoctorReport(report, options?.json === true));
+  process.stdout.write(output);
 }

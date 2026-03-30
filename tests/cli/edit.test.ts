@@ -47,4 +47,42 @@ describe('edit command', () => {
       await rm(outputDir, { recursive: true, force: true });
     }
   });
+
+  it('prints machine-readable json when requested', async () => {
+    const outputDir = await mkdtemp(join(tmpdir(), 'apk-cli-edit-json-test-'));
+
+    try {
+      const result = await runCli([
+        'edit',
+        'tests/fixtures/minimal-apk/app.apk',
+        '--output',
+        join(outputDir, 'edited.apk'),
+        '--keystore',
+        'tests/fixtures/keystore/debug.jks',
+        '--store-pass',
+        'android',
+        '--key-alias',
+        'debug',
+        '--key-pass',
+        'android',
+        '--json'
+      ]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stderr).toBe('');
+      expect(JSON.parse(result.stdout)).toMatchObject({
+        command: 'edit',
+        outputFile: join(outputDir, 'edited.apk'),
+        stages: [
+          { name: 'decode', status: 'ok' },
+          { name: 'mutate', status: 'ok' },
+          { name: 'build', status: 'ok' },
+          { name: 'sign', status: 'ok' },
+          { name: 'verify', status: 'ok' }
+        ]
+      });
+    } finally {
+      await rm(outputDir, { recursive: true, force: true });
+    }
+  });
 });

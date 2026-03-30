@@ -1,8 +1,10 @@
-# Fixture 说明
+# 测试夹具说明
 
-- `minimal-apk/app.apk`: 用 zip 占位方式构造的最小 APK fixture，用于当前集成测试。
-- `minimal-aab/app.aab`: 用 zip 占位方式构造的最小 AAB fixture，用于当前集成测试。
-- `keystore/debug.jks`: 集成测试签名用 keystore。
-- `icon-png/icon.png`: 图标替换测试用占位资源。
+这个目录存放 `apk-cli` 的测试输入样本。
 
-这些 fixture 主要用于验证 CLI 链路，不代表真实 Android 构建产物的全部结构。
+- `minimal-apk/`：最小 APK 结构，用于资源索引、命令行编辑和集成测试
+- `minimal-aab/`：最小 AAB 结构，用于 AAB 解包与重打包测试
+- `icon-png/`：图标替换测试素材
+- `keystore/`：签名测试使用的本地 keystore
+
+这些夹具只用于自动化测试，不作为工具的运行时依赖。

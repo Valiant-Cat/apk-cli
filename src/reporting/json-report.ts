@@ -1,5 +1,6 @@
-import type { ResourceIndex } from '../package/types.js';
 import type { MutationReport } from '../mutations/apply.js';
+import type { ResourceIndex } from '../package/types.js';
+import type { DoctorReport } from '../toolchain/contracts.js';
 
 export type StageReport = {
   name: string;
@@ -7,14 +8,34 @@ export type StageReport = {
   message?: string;
 };
 
-export type CliReport = {
-  command: 'doctor' | 'inspect' | 'edit';
-  stages?: StageReport[];
-  mutationReport?: MutationReport;
-  outputFile?: string;
-  verify?: ResourceIndex;
+export type DoctorCliReport = {
+  command: 'doctor';
+  tools: DoctorReport['tools'];
 };
 
+export type InspectCliReport = {
+  command: 'inspect';
+  index: ResourceIndex;
+};
+
+export type EditCliReport = {
+  command: 'edit';
+  stages: StageReport[];
+  mutationReport: MutationReport;
+  outputFile: string;
+  verify: ResourceIndex;
+};
+
+export type CliReport = DoctorCliReport | InspectCliReport | EditCliReport;
+
 export function formatJsonReport(report: CliReport): string {
+  if (report.command === 'doctor') {
+    return `${JSON.stringify({ tools: report.tools }, null, 2)}\n`;
+  }
+
+  if (report.command === 'inspect') {
+    return `${JSON.stringify(report.index, null, 2)}\n`;
+  }
+
   return `${JSON.stringify(report, null, 2)}\n`;
 }

@@ -1,9 +1,15 @@
-import { inspectPackage, renderInspectReport } from '../package/inspect.js';
+import { inspectPackage } from '../package/inspect.js';
+import { formatJsonReport } from '../reporting/json-report.js';
+import { formatTextReport } from '../reporting/text-report.js';
 
 export async function runInspectCommand(input: string, options?: { json?: boolean }): Promise<void> {
   try {
     const report = await inspectPackage(input);
-    process.stdout.write(renderInspectReport(report, options?.json === true));
+    const output = options?.json === true
+      ? formatJsonReport({ command: 'inspect', index: report })
+      : formatTextReport({ command: 'inspect', index: report });
+
+    process.stdout.write(output);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`${message}\n`);
