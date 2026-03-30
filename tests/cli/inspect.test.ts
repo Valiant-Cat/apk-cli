@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { resolve } from 'node:path';
 import { normalizeOutputPath } from '../../src/core/config';
+import { runCli } from '../helpers/run-cli';
+
+const apkFixtureDir = resolve('tests/fixtures/minimal-apk/decoded');
+const aabFixtureDir = resolve('tests/fixtures/minimal-aab/decoded');
 
 describe('normalizeOutputPath', () => {
   it('rejects using the same file as input and output', () => {
@@ -27,5 +31,25 @@ describe('normalizeOutputPath', () => {
 
   it('returns different output paths unchanged', () => {
     expect(normalizeOutputPath('app.apk', 'dist/app.apk')).toBe('dist/app.apk');
+  });
+});
+
+describe('inspect command', () => {
+  it('prints decoded apk metadata as json', async () => {
+    const result = await runCli(['inspect', apkFixtureDir, '--json']);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('"packageName": "com.example.demo"');
+    expect(result.stdout).toContain('"labelRefs"');
+    expect(result.stdout).toContain('"iconRefs"');
+  });
+
+  it('prints decoded aab metadata as text', async () => {
+    const result = await runCli(['inspect', aabFixtureDir]);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('package: com.example.bundle');
+    expect(result.stdout).toContain('label refs: @string/app_name');
+    expect(result.stdout).toContain('icon refs: @mipmap/ic_launcher');
   });
 });
