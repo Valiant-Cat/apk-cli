@@ -7,7 +7,8 @@
 - `doctor`：检查本机工具链
 - `inspect`：查看包内名称、版本、包名和图标引用
 - `edit`：修改名称、图标、版本号和包名，并重新签名
-- `apk-cli-mcp`：以 `stdio` 方式暴露 `doctor`、`inspect`、`edit` 三个 MCP tools
+- `apk-cli mcp serve|start|stop|status`：管理本地 HTTP MCP 服务
+- `apk-cli-mcp`：兼容保留的 `stdio` MCP 入口
 
 ## 安装
 
@@ -37,10 +38,32 @@ apk-cli edit app.apk \
 ## MCP
 
 ```bash
+apk-cli mcp serve
+```
+
+主入口现在是 `apk-cli mcp`：
+
+```bash
+apk-cli mcp serve
+apk-cli mcp start
+apk-cli mcp status
+apk-cli mcp stop
+```
+
+- `serve`：前台运行 MCP 服务，占用当前终端
+- `start`：后台启动本地 HTTP MCP 服务
+- `status`：查看后台服务状态
+- `stop`：停止后台服务
+
+默认情况下，后台服务会把状态写到 `~/.apk-cli/mcp/server.json`。
+
+兼容入口仍然保留：
+
+```bash
 apk-cli-mcp
 ```
 
-当前 MCP Server 默认使用 `stdio` 传输，并暴露 3 个明确工具：
+它使用 `stdio` 传输，并暴露 3 个明确工具：
 
 - `doctor`
 - `inspect`
@@ -57,7 +80,7 @@ apk-cli-mcp
 - 首次运行 `doctor`、`inspect` 或 `edit` 时，工具会把缺失的官方依赖下载到 `~/.apk-cli/tools`
 - `apk` 走 `apktool + zipalign + apksigner` 流水线，`aab` 走 `bundletool + jarsigner` 流水线
 - 当前 `aab` 编辑仅支持单 `base` module 的 bundle，多 module bundle 会直接失败并给出原因
-- `apk-cli-mcp` 复用和 CLI 相同的核心逻辑，不是 shell 包装器
+- `apk-cli mcp` 和 `apk-cli-mcp` 都复用和 CLI 相同的核心逻辑，不是 shell 包装器
 - `inspect` 和 `doctor` 同时支持文本输出和 `--json`
 - `edit` 成功时会输出稳定文本摘要，或者在 `--json` 下输出可机读结果
 - 测试夹具位于 `tests/fixtures/`
