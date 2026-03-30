@@ -42,7 +42,16 @@ describe('edit command', () => {
       ]);
 
       expect(result.exitCode).toBe(0);
-      expect(result.stderr).toBe('');
+      expect(result.stderr).toContain('[INFO] decode started');
+      expect(result.stderr).toContain('[INFO] decode finished');
+      expect(result.stderr).toContain('[INFO] mutate started');
+      expect(result.stderr).toContain('[INFO] mutate finished');
+      expect(result.stderr).toContain('[INFO] build started');
+      expect(result.stderr).toContain('[INFO] build finished');
+      expect(result.stderr).toContain('[INFO] sign started');
+      expect(result.stderr).toContain('[INFO] sign finished');
+      expect(result.stderr).toContain('[INFO] verify started');
+      expect(result.stderr).toContain('[INFO] verify finished');
       expect(result.stdout).toContain('command: edit');
       expect(result.stdout).toContain('output:');
     } finally {
@@ -71,7 +80,8 @@ describe('edit command', () => {
       ]);
 
       expect(result.exitCode).toBe(0);
-      expect(result.stderr).toBe('');
+      expect(result.stderr).toContain('[INFO] decode started');
+      expect(result.stderr).toContain('[INFO] verify finished');
       expect(JSON.parse(result.stdout)).toMatchObject({
         command: 'edit',
         outputFile: join(outputDir, 'edited.apk'),

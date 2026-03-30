@@ -1,5 +1,6 @@
 import { basename, extname, join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { createLogger, type Logger } from '../core/logger.js';
 import { createWorkspace } from '../core/workspace.js';
 import { buildAabFromApk } from '../package/bundle.js';
 import { decodeAab } from '../package/decode-aab.js';
@@ -39,6 +40,20 @@ function prefersAab(input: string): boolean {
   return extname(input).toLowerCase() === '.aab';
 }
 
+function createProgressLogger(): Logger {
+  return createLogger({
+    stdout: (line) => process.stderr.write(`${line}\n`),
+    stderr: (line) => process.stderr.write(`${line}\n`)
+  });
+}
+
+async function runStage<T>(logger: Logger, stage: string, action: () => Promise<T>): Promise<T> {
+  logger.info(`${stage} started`);
+  const result = await action();
+  logger.info(`${stage} finished`);
+  return result;
+}
+
 export async function runEditCommand(input: string, options?: EditCommandOptions): Promise<void> {
   try {
     const request = parseEditRequest({
@@ -54,46 +69,65 @@ export async function runEditCommand(input: string, options?: EditCommandOptions
       versionCode: options?.versionCode,
       packageName: options?.packageName
     });
+    const logger = createProgressLogger();
 
     const workspace = await createWorkspace({
       baseDir: join(tmpdir(), 'apk-cli-workspaces')
     });
-    const decodedDir = prefersAab(request.input)
-      ? await decodeAab(request.input, workspace.root, request)
-      : await decodeApk(request.input, workspace.root);
+    const decodedDir = await runStage(logger, 'decode', async () => (
+      prefersAab(request.input)
+        ? await decodeAab(request.input, workspace.root, request)
+        : await decodeApk(request.input, workspace.root)
+    ));
 
-    const pipelineReport = await runEditPipeline({
-      ...request,
-      decodedDir,
-      appName: request.appName,
-      iconPath: request.icon,
-      versionName: request.versionName,
-      versionCode: request.versionCode,
-      packageName: request.packageName
-    } as typeof request & {
-      decodedDir: string;
-      appName?: string;
-      iconPath?: string;
-      versionName?: string;
-      versionCode?: string;
-      packageName?: string;
-    });
+    const pipelineReport = await runStage(logger, 'mutate', async () => (
+      await runEditPipeline({
+        ...request,
+        decodedDir,
+        appName: request.appName,
+        iconPath: request.icon,
+        versionName: request.versionName,
+        versionCode: request.versionCode,
+        packageName: request.packageName
+      } as typeof request & {
+        decodedDir: string;
+        appName?: string;
+        iconPath?: string;
+        versionName?: string;
+        versionCode?: string;
+        packageName?: string;
+      })
+    ));
 
     const outputFile = buildDefaultOutputPath(request.input, request.output);
-    const unsignedApk = await buildApkArtifact(decodedDir, join(workspace.artifactsDir, 'unsigned.apk'));
+    const unsignedApk = await runStage(
+      logger,
+      'build',
+      async () => await buildApkArtifact(decodedDir, join(workspace.artifactsDir, 'unsigned.apk'))
+    );
 
-    if (prefersAab(request.input)) {
-      const signedApk = join(workspace.artifactsDir, 'edited.apk');
-      await signApk(unsignedApk, signedApk, request);
-      const outputBundle = await buildAabFromApk(signedApk, outputFile, workspace.root);
-      await signAab(outputBundle, request);
-      await verifySignedAab(outputBundle, request);
-    } else {
+    await runStage(logger, 'sign', async () => {
+      if (prefersAab(request.input)) {
+        const signedApk = join(workspace.artifactsDir, 'edited.apk');
+        await signApk(unsignedApk, signedApk, request);
+        const outputBundle = await buildAabFromApk(signedApk, outputFile, workspace.root);
+        await signAab(outputBundle, request);
+        return;
+      }
+
       await signApk(unsignedApk, outputFile, request);
-      await verifySignedApk(outputFile);
-    }
+    });
 
-    const verify = await inspectPackage(outputFile);
+    const verify = await runStage(logger, 'verify', async () => {
+      if (prefersAab(request.input)) {
+        await verifySignedAab(outputFile, request);
+      } else {
+        await verifySignedApk(outputFile);
+      }
+
+      return await inspectPackage(outputFile);
+    });
+
     const report: CliReport = {
       command: 'edit',
       stages: [
