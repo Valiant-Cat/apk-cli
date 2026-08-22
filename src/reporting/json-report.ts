@@ -1,4 +1,5 @@
 import type { MutationReport } from '../mutations/apply.js';
+import type { InstallReport } from '../package/install.js';
 import type { ResourceIndex } from '../package/types.js';
 import type { DoctorReport } from '../toolchain/contracts.js';
 
@@ -26,7 +27,9 @@ export type EditCliReport = {
   verify: ResourceIndex;
 };
 
-export type CliReport = DoctorCliReport | InspectCliReport | EditCliReport;
+export type InstallCliReport = InstallReport;
+
+export type CliReport = DoctorCliReport | InspectCliReport | EditCliReport | InstallCliReport;
 
 export function formatJsonReport(report: CliReport): string {
   if (report.command === 'doctor') {

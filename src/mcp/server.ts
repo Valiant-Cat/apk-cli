@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import * as z from 'zod/v4';
 import { collectDoctorReport } from '../commands/doctor.js';
 import { executeEditCommand, type EditCommandOptions } from '../commands/edit.js';
+import { executeInstallCommand, type InstallCommandOptions } from '../commands/install.js';
 import { inspectPackage } from '../package/inspect.js';
 import type { ResourceIndex } from '../package/types.js';
 import { formatTextReport } from '../reporting/text-report.js';
@@ -33,6 +34,19 @@ const editOutputSchema = {
     risks: z.array(z.string()).optional()
   }),
   verify: z.object(resourceIndexSchema)
+};
+const installOutputSchema = {
+  inputFile: z.string(),
+  packageType: z.enum(['apk', 'xapk', 'aab']),
+  targetDevice: z.string(),
+  method: z.enum(['adb install', 'adb install-multiple', 'bundletool install-apks']),
+  apkFiles: z.array(z.string()),
+  obbFiles: z.array(z.string()),
+  stages: z.array(z.object({
+    name: z.string(),
+    status: z.enum(['ok', 'skipped']),
+    message: z.string().optional()
+  }))
 };
 
 function toErrorResult(error: unknown) {
@@ -149,6 +163,45 @@ export function createApkCliMcpServer() {
             stages: report.stages,
             mutationReport: report.mutationReport,
             verify: report.verify
+          }
+        };
+      } catch (error) {
+        return toErrorResult(error);
+      }
+    }
+  );
+
+  server.registerTool(
+    'install',
+    {
+      title: 'Install',
+      description: '自动识别 APK、XAPK 或 AAB，并安装到已连接的 Android 设备。',
+      inputSchema: {
+        input: z.string().describe('APK、XAPK 或 AAB 的输入路径'),
+        serial: z.string().optional().describe('目标 adb 设备序列号'),
+        replace: z.boolean().optional().describe('是否覆盖安装，默认 true'),
+        grant: z.boolean().optional().describe('是否安装后授予运行时权限')
+      },
+      outputSchema: installOutputSchema
+    },
+    async (args) => {
+      try {
+        const options: InstallCommandOptions = {
+          serial: args.serial,
+          replace: args.replace,
+          grant: args.grant
+        };
+        const report = await executeInstallCommand(args.input, options);
+        return {
+          content: [{ type: 'text', text: formatTextReport(report) }],
+          structuredContent: {
+            inputFile: report.inputFile,
+            packageType: report.packageType,
+            targetDevice: report.targetDevice,
+            method: report.method,
+            apkFiles: report.apkFiles,
+            obbFiles: report.obbFiles,
+            stages: report.stages
           }
         };
       } catch (error) {

@@ -15,6 +15,18 @@ export function formatTextReport(report: CliReport): string {
     ].join('\n') + '\n';
   }
 
+  if (report.command === 'install') {
+    return [
+      `command: ${report.command}`,
+      `type: ${report.packageType}`,
+      `target device: ${report.targetDevice}`,
+      `method: ${report.method}`,
+      `apk files: ${report.apkFiles.length}`,
+      `obb files: ${report.obbFiles.length}`,
+      `stages: ${report.stages.map((stage) => `${stage.name}=${stage.status}`).join(', ')}`
+    ].join('\n') + '\n';
+  }
+
   const lines = [`command: ${report.command}`];
 
   lines.push(`stages: ${report.stages.map((stage) => `${stage.name}=${stage.status}`).join(', ')}`);

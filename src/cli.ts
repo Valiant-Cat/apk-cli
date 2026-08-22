@@ -2,6 +2,7 @@
 import { Command } from 'commander';
 import { runDoctorCommand } from './commands/doctor.js';
 import { runEditCommand } from './commands/edit.js';
+import { runInstallCommand } from './commands/install.js';
 import { runInspectCommand } from './commands/inspect.js';
 import {
   runMcpServeCommand,
@@ -35,6 +36,17 @@ program
   .option('--json', 'output json')
   .action(function (input) {
     return runInspectCommand(input, this.opts());
+  });
+program
+  .command('install <input>')
+  .description('Install APK, XAPK, or AAB to a connected Android device')
+  .option('--serial <serial>', 'target adb device serial')
+  .option('--replace', 'replace existing package', true)
+  .option('--no-replace', 'do not replace existing package')
+  .option('--grant', 'grant runtime permissions on install')
+  .option('--json', 'output json')
+  .action(function (input) {
+    return runInstallCommand(input, this.opts());
   });
 program
   .command('edit <input>')

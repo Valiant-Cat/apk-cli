@@ -1,4 +1,5 @@
-import { chmod, mkdir, readdir, stat, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { execFile } from 'node:child_process';
@@ -9,6 +10,7 @@ const GOOGLE_REPOSITORY = 'https://dl.google.com/android/repository';
 const GOOGLE_MAVEN = 'https://dl.google.com/android/maven2';
 const APKTOOL_VERSION = '3.0.1';
 const BUNDLETOOL_VERSION = '1.18.3';
+const BUNDLETOOL_SHA256 = 'a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29';
 const BUILD_TOOLS_VERSION = '35.0.1';
 const AAPT2_VERSION = '9.1.0-14792394';
 const PLATFORM_ARCHIVE = 'platform-34-ext8_r01.zip';
@@ -16,6 +18,7 @@ const PLATFORM_ARCHIVE = 'platform-34-ext8_r01.zip';
 export type DownloadRequest = {
   url: string;
   destination: string;
+  sha256?: string;
 };
 
 export type DownloadResult = {
@@ -70,12 +73,33 @@ async function pathExists(path: string): Promise<boolean> {
   }
 }
 
+async function fileSha256(path: string): Promise<string> {
+  return createHash('sha256').update(await readFile(path)).digest('hex');
+}
+
+async function verifyCachedFile(path: string, expectedSha256?: string): Promise<boolean> {
+  if (!await pathExists(path)) {
+    return false;
+  }
+
+  if (!expectedSha256) {
+    return true;
+  }
+
+  if (await fileSha256(path) === expectedSha256) {
+    return true;
+  }
+
+  await rm(path, { force: true });
+  return false;
+}
+
 async function ensureDir(path: string): Promise<void> {
   await mkdir(path, { recursive: true });
 }
 
 async function downloadFile(request: DownloadRequest): Promise<DownloadResult> {
-  if (await pathExists(request.destination)) {
+  if (await verifyCachedFile(request.destination, request.sha256)) {
     return { path: request.destination };
   }
 
@@ -86,7 +110,16 @@ async function downloadFile(request: DownloadRequest): Promise<DownloadResult> {
   }
 
   const buffer = Buffer.from(await response.arrayBuffer());
-  await writeFile(request.destination, buffer);
+  const tempDestination = `${request.destination}.${process.pid}.${Date.now()}.tmp`;
+  await writeFile(tempDestination, buffer);
+
+  if (request.sha256 && await fileSha256(tempDestination) !== request.sha256) {
+    await rm(tempDestination, { force: true });
+    throw new Error(`downloaded file checksum mismatch: ${request.url}`);
+  }
+
+  await rename(tempDestination, request.destination);
+
   return { path: request.destination };
 }
 
@@ -144,7 +177,8 @@ export async function ensureManagedToolchain(cacheDir = getDefaultCacheDir()): P
   });
   await downloadFile({
     url: `https://github.com/google/bundletool/releases/download/${BUNDLETOOL_VERSION}/bundletool-all-${BUNDLETOOL_VERSION}.jar`,
-    destination: bundletoolJar
+    destination: bundletoolJar,
+    sha256: BUNDLETOOL_SHA256
   });
 
   if (!await pathExists(buildToolsDir)) {

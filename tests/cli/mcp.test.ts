@@ -63,7 +63,7 @@ describe('mcp management commands', () => {
       await client.connect(transport);
       try {
         const tools = await client.listTools();
-        expect(tools.tools.map((tool) => tool.name)).toEqual(['doctor', 'inspect', 'edit']);
+        expect(tools.tools.map((tool) => tool.name)).toEqual(['doctor', 'inspect', 'edit', 'install']);
 
         const doctorResult = await client.callTool({ name: 'doctor', arguments: {} });
         const doctorOutput = doctorResult.structuredContent as { tools: Array<{ name: string; status: string }> };

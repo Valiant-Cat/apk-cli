@@ -6,6 +6,7 @@
 
 - `doctor`：检查本机工具链
 - `inspect`：查看包内名称、版本、包名和图标引用
+- `install`：自动识别并安装 `apk/xapk/aab`
 - `edit`：修改名称、图标、版本号和包名，并重新签名
 - `apk-cli mcp serve|start|stop|status`：管理本地 HTTP MCP 服务
 
@@ -22,6 +23,9 @@ npm run build
 apk-cli doctor
 apk-cli inspect app.apk
 apk-cli inspect app.apk --json
+apk-cli install app.apk
+apk-cli install app.xapk --serial emulator-5554
+apk-cli install app.aab --grant --json
 apk-cli edit app.apk \
   --keystore release.jks \
   --store-pass xxx \
@@ -58,6 +62,7 @@ apk-cli mcp stop
 
 - `doctor`
 - `inspect`
+- `install`
 - `edit`
 
 工具返回同时包含：
@@ -68,7 +73,11 @@ apk-cli mcp stop
 ## 说明
 
 - `edit` 需要提供 keystore 参数才能执行签名
-- 首次运行 `doctor`、`inspect` 或 `edit` 时，工具会把缺失的官方依赖下载到 `~/.apk-cli/tools`
+- `install` 会自动根据输入扩展名选择 APK、XAPK 或 AAB 安装流程
+- APK 使用 `adb install`，XAPK 解包后使用 `adb install` 或 `adb install-multiple`，AAB 使用 `bundletool build-apks --connected-device` 后安装
+- XAPK 中的 `Android/obb/<package>/...` 会在 APK 安装成功后推送到设备对应目录
+- 多台设备同时连接时，`install` 需要使用 `--serial <serial>` 指定目标设备
+- 首次运行 `doctor`、`inspect`、`install` 或 `edit` 时，工具会把缺失的官方依赖下载到 `~/.apk-cli/tools`
 - `apk` 走 `apktool + zipalign + apksigner` 流水线，`aab` 走 `bundletool + jarsigner` 流水线
 - 当前 `aab` 编辑仅支持单 `base` module 的 bundle，多 module bundle 会直接失败并给出原因
 - `apk-cli mcp` 复用和 CLI 相同的核心逻辑，不是 shell 包装器
